@@ -2,7 +2,7 @@
 * ubuntu 16.04 LTS
 
 # setup
-	sudo apt install cmake libitpp-dev libblas-dev librtlsdr-dev libncurses5-dev liblapack-dev librtlsdr-dev -y # there are more.. please create an issue if you identify more
+sudo apt install cmake libitpp-dev libblas-dev librtlsdr-dev libncurses5-dev liblapack-dev librtlsdr-dev -y # there are more.. please create an issue if you identify more
 
 --------------------------
 LTE Cell Scanner / Tracker
@@ -21,9 +21,8 @@ The main documentation in html format can be found on the web at:
   http://www.evrytania.com/lte-tools
 And in the doc/index.html subdirectory of this distribution.
 
-For questions, comments, or bug reports, contact James Peroulas
-james@evrytania.com, or check the bugtracker on github:
-  https://github.com/Evrytania/LTE-Cell-Scanner/issues
+For questions, comments, or bug reports, check the bugtracker on github:
+  https://github.com/lucasduffey/LTE-Cell-Scanner/issues
 
 ------
 Quick build instructions:
@@ -48,4 +47,3 @@ Search for LTE carriers within a common LTE frequency range used in the US:
 
 Start tracking LTE cells on frequency 739 MHz:
   LTE-Tracker -f 739000000
-
