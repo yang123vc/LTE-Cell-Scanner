@@ -1,8 +1,10 @@
+forked from Evrytania/LTE-Cell-Scanner, which seems to be unsupported for the last 4 years.
+
 # All testing is performed against the following configuration:
 * ubuntu 16.04 LTS
 
 # setup
-sudo apt install cmake libitpp-dev libblas-dev librtlsdr-dev libncurses5-dev liblapack-dev librtlsdr-dev -y # there are more.. please create an issue if you identify more
+sudo apt install cmake libitpp-dev libblas-dev librtlsdr-dev libncurses5-dev liblapack-dev librtlsdr-dev -y # create an issue if you identify more
 
 --------------------------
 LTE Cell Scanner / Tracker
@@ -41,6 +43,7 @@ Install:
 ------
 Quick usage instructions:
 ------
+LTE band info: http://www.radio-electronics.com/info/cellulartelecomms/lte-long-term-evolution/lte-frequency-spectrum.php
 
 Search for LTE carriers within a common LTE frequency range used in the US:
   CellSearch --freq-start 715e6 --freq-end 768e6
