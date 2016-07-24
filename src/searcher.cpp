@@ -1690,4 +1690,3 @@ Cell decode_mib(
 
   return cell_out;
 }
-

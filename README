@@ -4,7 +4,7 @@ forked from Evrytania/LTE-Cell-Scanner, which seems to be unsupported for the la
 * ubuntu 16.04 LTS
 
 # setup
-sudo apt install cmake libitpp-dev libblas-dev librtlsdr-dev libncurses5-dev liblapack-dev librtlsdr-dev -y # create an issue if you identify more
+sudo apt install cmake libitpp-dev libblas-dev librtlsdr-dev libncurses5-dev liblapack-dev -y # create an issue if you identify more
 
 --------------------------
 LTE Cell Scanner / Tracker
@@ -30,10 +30,11 @@ For questions, comments, or bug reports, check the bugtracker on github:
 Quick build instructions:
 ------
   cd LTE-Cell-Scanner
+  gtags . # make dev work easier
   mkdir build
   cd build
   cmake ..
-  make
+  make -j8 # reduce to troubleshoot
 
 ------
 Install:

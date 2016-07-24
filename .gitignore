@@ -1,2 +1,7 @@
 build/**
 build
+tags
+GPATH
+GRTAGS
+GSYMS
+GTAGS

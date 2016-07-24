@@ -57,13 +57,13 @@ void searcher_thread(
   global_thread_data_t & global_thread_data,
   tracked_cell_list_t & tracked_cell_list
 ) {
-  if (verbosity>=1) {
+  if(verbosity >= 1){
     cout << "Searcher process has been launched." << endl;
   }
 
   global_thread_data.searcher_thread_id=syscall(SYS_gettid);
 
-  if (nice(20)==-1) {
+  if(nice(20) == -1){
     cerr << "Error: could not reduce searcher process priority" << endl;
     ABORT(-1);
   }
@@ -80,7 +80,7 @@ void searcher_thread(
 
   // Loop forever.
   Real_Timer tt;
-  while (true) {
+  while(true){
     // Used to measure searcher cycle time.
     tt.tic();
 
@@ -95,14 +95,14 @@ void searcher_thread(
 
     // Get the current frequency offset
     vec f_search_set(1);
-    f_search_set(0)=global_thread_data.frequency_offset();
-    double k_factor=(fc_requested-f_search_set(0))/fc_programmed;
+    f_search_set(0) = global_thread_data.frequency_offset();
+    double k_factor = (fc_requested-f_search_set(0))/fc_programmed;
 
     // Results are stored in this vector.
     list<Cell> detected_cells;
 
     // Local reference to the capture buffer.
-    cvec &capbuf=capbuf_sync.capbuf;
+    cvec &capbuf = capbuf_sync.capbuf;
 
     // Correlate
     mat xc_incoherent_collapsed_pow;
@@ -114,26 +114,26 @@ void searcher_thread(
     vec sp;
     uint16 n_comb_xc;
     uint16 n_comb_sp;
-    if (verbosity>=2) {
+    if (verbosity >= 2){
       cout << "  Calculating PSS correlations" << endl;
     }
     xcorr_pss(capbuf,f_search_set,DS_COMB_ARM,fc_requested,fc_programmed,fs_programmed,xc_incoherent_collapsed_pow,xc_incoherent_collapsed_frq,xc_incoherent_single,xc_incoherent,sp_incoherent,xc,sp,n_comb_xc,n_comb_sp);
 
     // Calculate the threshold vector
-    const uint8 thresh1_n_nines=12;
-    double R_th1=chi2cdf_inv(1-pow(10.0,-thresh1_n_nines),2*n_comb_xc*(2*DS_COMB_ARM+1));
-    double rx_cutoff=(6*12*15e3/2+4*15e3)/(FS_LTE/16/2);
-    vec Z_th1=R_th1*sp_incoherent/rx_cutoff/137/2/n_comb_xc/(2*DS_COMB_ARM+1);
+    const uint8 thresh1_n_nines = 12;
+    double R_th1 = chi2cdf_inv(1-pow(10.0,-thresh1_n_nines),2*n_comb_xc*(2*DS_COMB_ARM+1));
+    double rx_cutoff = (6*12*15e3/2+4*15e3)/(FS_LTE/16/2);
+    vec Z_th1 = R_th1*sp_incoherent/rx_cutoff/137/2/n_comb_xc/(2*DS_COMB_ARM+1);
 
     // Search for the peaks
-    if (verbosity>=2) {
+    if (verbosity >= 2) {
       cout << "  Searching for and examining correlation peaks..." << endl;
     }
     peak_search(xc_incoherent_collapsed_pow,xc_incoherent_collapsed_frq,Z_th1,f_search_set,fc_requested,fc_programmed,xc_incoherent_single,DS_COMB_ARM,detected_cells);
 
     // Loop and check each peak
     list<Cell>::iterator iterator=detected_cells.begin();
-    while (iterator!=detected_cells.end()) {
+    while (iterator!=detected_cells.end()){
       // Detect SSS if possible
       vec sss_h1_np_est_meas;
       vec sss_h2_np_est_meas;
@@ -144,13 +144,13 @@ void searcher_thread(
       mat log_lik_nrm;
       mat log_lik_ext;
 #define THRESH2_N_SIGMA 3
-      (*iterator)=sss_detect((*iterator),capbuf,THRESH2_N_SIGMA,fc_requested,fc_programmed,fs_programmed,sss_h1_np_est_meas,sss_h2_np_est_meas,sss_h1_nrm_est_meas,sss_h2_nrm_est_meas,sss_h1_ext_est_meas,sss_h2_ext_est_meas,log_lik_nrm,log_lik_ext);
+      (*iterator) = sss_detect((*iterator),capbuf,THRESH2_N_SIGMA,fc_requested,fc_programmed,fs_programmed,sss_h1_np_est_meas,sss_h2_np_est_meas,sss_h1_nrm_est_meas,sss_h2_nrm_est_meas,sss_h1_ext_est_meas,sss_h2_ext_est_meas,log_lik_nrm,log_lik_ext);
       if ((*iterator).n_id_1==-1) {
         // No SSS detected.
         iterator=detected_cells.erase(iterator);
         continue;
       }
-      if (verbosity>=2) {
+      if (verbosity >= 2) {
         cout << "Detected PSS/SSS correspoding to cell ID: " << (*iterator).n_id_cell() << endl;
       }
 
@@ -169,7 +169,7 @@ void searcher_thread(
         }
       }
       if (match) {
-        if (verbosity>=2) {
+        if (verbosity >= 2) {
           cout << "Cell already being tracked..." << endl;
         }
         ++iterator;
@@ -246,4 +246,3 @@ void searcher_thread(
   }
   // Will never reach here...
 }
-

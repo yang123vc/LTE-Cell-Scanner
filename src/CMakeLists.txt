@@ -35,4 +35,3 @@ TARGET_LINK_LIBRARIES (LTE-Tracker optimized itpp ${common_link_libs})
 #SET_TESTS_PROPERTIES(FullTest PROPERTIES PASS_REGULAR_EXPRESSION cell.ID..271)
 
 INSTALL( TARGETS CellSearch LTE-Tracker DESTINATION bin )
-
