@@ -1381,7 +1381,7 @@ void chan_est(
 
   // Set of OFDM symbols containing reference symbols.
   ivec rs_set;
-  if (port<=1) {
+  if (port <= 1) {
     // There are better ways to implement this...
     Sort <int> sort;
     rs_set=concat(itpp_ext::matlab_range(0,n_symb_dl,n_ofdm-1),itpp_ext::matlab_range(n_symb_dl-3,n_symb_dl,n_ofdm-1));
@@ -1407,9 +1407,9 @@ void chan_est(
       shift(t)=rs_dl.get_shift(mod(slot_num,20),sym_num,port);
     }
 
-    cvec rs=rs_dl.get_rs(slot_num,sym_num);
+    cvec rs = rs_dl.get_rs(slot_num,sym_num);
     // Extract
-    cvec raw_row=tfg.get_row(rs_set(t)).get(itpp_ext::matlab_range((int32)rs_dl.get_shift(mod(slot_num,20),sym_num,port),6,71));
+    cvec raw_row = tfg.get_row(rs_set(t)).get(itpp_ext::matlab_range((int32)rs_dl.get_shift(mod(slot_num,20),sym_num,port),6,71));
     ce_raw.set_row(t,raw_row);
     // Compensate for known RS
     ce_raw.set_row(t,elem_mult(ce_raw.get_row(t),conj(rs)));
@@ -1433,6 +1433,7 @@ void chan_est(
   for (uint16 t=0;t<n_rs_ofdm;t++) {
     complex <double> total;
     uint8 n_total;
+
     for (uint16 k=0;k<12;k++) {
       // Current time offset
       ivec ind;
@@ -1527,105 +1528,105 @@ Cell decode_mib(
   const Cell & cell,
   const cmat & tfg,
   const RS_DL & rs_dl
-) {
+){
   // Local shortcuts
-  const int8 n_symb_dl=cell.n_symb_dl();
+  const int8 n_symb_dl = cell.n_symb_dl();
 
-  Cell cell_out=cell;
+  Cell cell_out = cell;
 
   // Channel estimation. This is automatically performed for four antennas
   // and for every RE, not only the RE's that contain an MIB!!!
   Array <cmat> ce_tfg(4);
   vec np_v(4);
-  chan_est(cell,rs_dl,tfg,0,ce_tfg(0),np_v(0));
-  chan_est(cell,rs_dl,tfg,1,ce_tfg(1),np_v(1));
-  chan_est(cell,rs_dl,tfg,2,ce_tfg(2),np_v(2));
-  chan_est(cell,rs_dl,tfg,3,ce_tfg(3),np_v(3));
+  chan_est(cell, rs_dl, tfg, 0, ce_tfg(0), np_v(0));
+  chan_est(cell, rs_dl, tfg, 1, ce_tfg(1), np_v(1));
+  chan_est(cell, rs_dl, tfg, 2, ce_tfg(2), np_v(2));
+  chan_est(cell, rs_dl, tfg, 3, ce_tfg(3), np_v(3));
 
   // Try various frame offsets and number of TX antennas.
   bvec c_est;
-  for (uint8 frame_timing_guess=0;frame_timing_guess<=3;frame_timing_guess++) {
-    const uint16 ofdm_sym_set_start=frame_timing_guess*10*2*n_symb_dl;
-    ivec ofdm_sym_set=itpp_ext::matlab_range(ofdm_sym_set_start,ofdm_sym_set_start+3*10*2*n_symb_dl+2*n_symb_dl-1);
+  for(uint8 frame_timing_guess = 0; frame_timing_guess <= 3; frame_timing_guess++){
+    const uint16 ofdm_sym_set_start = frame_timing_guess*10*2*n_symb_dl;
+    ivec ofdm_sym_set = itpp_ext::matlab_range(ofdm_sym_set_start,ofdm_sym_set_start+3*10*2*n_symb_dl+2*n_symb_dl-1);
 
     // Extract only the portion of the TFG containing the four frames
-    // we are interested in.
-    cmat tfg_try=tfg.get_rows(ofdm_sym_set);
+    // we are interested in. - NOTE: does this mean we can't pull mcc + mnc
+    cmat tfg_try = tfg.get_rows(ofdm_sym_set);
     Array <cmat> ce_try(4);
-    for (uint8 t=0;t<4;t++) {
-      ce_try(t)=ce_tfg(t).get_rows(ofdm_sym_set);
+    for(uint8 t = 0; t < 4; t++){
+      ce_try(t)=ce_tfg(t).get_rows(ofdm_sym_set); // FIXME: WHAT??
     }
 
     // Extract symbols and channel estimates for the PBCH
     cvec pbch_sym;
     cmat pbch_ce;
-    pbch_extract(cell,tfg_try,ce_try,pbch_sym,pbch_ce);
+    pbch_extract(cell, tfg_try, ce_try, pbch_sym, pbch_ce);
 
     // Try 1, 2, and 4 ports.
     vec np;
     cvec syms;
-    for (uint8 n_ports_pre=1;n_ports_pre<=3;n_ports_pre++) {
-      const uint8 n_ports=(n_ports_pre==3)?4:n_ports_pre;
-      // Perform channel compensation and also estimate noise power in each
-      // symbol.
-      if (n_ports==1) {
-        cvec gain=conj(elem_div(pbch_ce.get_row(0),to_cvec(sqr(pbch_ce.get_row(0)))));
-        syms=elem_mult(pbch_sym,gain);
-        np=np_v(0)*sqr(gain);
+    for (uint8 n_ports_pre = 1; n_ports_pre <= 3; n_ports_pre++) {
+      const uint8 n_ports = (n_ports_pre==3)?4:n_ports_pre;
+      // Perform channel compensation and also estimate noise power in each symbol.
+      if (n_ports == 1) {
+        cvec gain = conj(elem_div(pbch_ce.get_row(0),to_cvec(sqr(pbch_ce.get_row(0)))));
+        syms = elem_mult(pbch_sym,gain);
+        np = np_v(0)*sqr(gain);
       } else {
         syms.set_size(length(pbch_sym));
         np.set_size(length(pbch_sym));
+
 #ifndef NDEBUG
         syms=NAN;
         np=NAN;
 #endif
-        for (int32 t=0;t<length(syms);t+=2) {
+        for(int32 t = 0; t < length(syms); t += 2) {
           // Simple zero-forcing
           // http://en.wikipedia.org/wiki/Space-time_block_coding_based_transmit_diversity
           complex <double> h1,h2;
           double np_temp;
-          if (n_ports==2) {
-            h1=(pbch_ce(0,t)+pbch_ce(0,t+1))/2;
-            h2=(pbch_ce(1,t)+pbch_ce(1,t+1))/2;
-            np_temp=mean(np_v(0,1));
+          if (n_ports == 2) {
+            h1 = (pbch_ce(0,t)+pbch_ce(0,t+1))/2;
+            h2 = (pbch_ce(1,t)+pbch_ce(1,t+1))/2;
+            np_temp = mean(np_v(0,1));
           } else {
-            if (mod(t,4)==0) {
-              h1=(pbch_ce(0,t)+pbch_ce(0,t+1))/2;
-              h2=(pbch_ce(2,t)+pbch_ce(2,t+1))/2;
-              np_temp=(np_v(0)+np_v(2))/2;
+            if (mod(t,4) == 0) {
+              h1 = (pbch_ce(0,t)+pbch_ce(0,t+1))/2;
+              h2 = (pbch_ce(2,t)+pbch_ce(2,t+1))/2;
+              np_temp = (np_v(0)+np_v(2))/2;
             } else {
-              h1=(pbch_ce(1,t)+pbch_ce(1,t+1))/2;
-              h2=(pbch_ce(3,t)+pbch_ce(3,t+1))/2;
-              np_temp=(np_v(1)+np_v(3))/2;
+              h1 = (pbch_ce(1,t)+pbch_ce(1,t+1))/2;
+              h2 = (pbch_ce(3,t)+pbch_ce(3,t+1))/2;
+              np_temp = (np_v(1)+np_v(3))/2;
             }
           }
-          complex <double> x1=pbch_sym(t);
-          complex <double> x2=pbch_sym(t+1);
-          double scale=pow(h1.real(),2)+pow(h1.imag(),2)+pow(h2.real(),2)+pow(h2.imag(),2);
+          complex <double> x1 = pbch_sym(t);
+          complex <double> x2 = pbch_sym(t+1);
+          double scale = pow(h1.real(),2)+pow(h1.imag(),2)+pow(h2.real(),2)+pow(h2.imag(),2);
           syms(t)=(conj(h1)*x1+h2*conj(x2))/scale;
           syms(t+1)=conj((-conj(h2)*x1+h1*conj(x2))/scale);
           np(t)=(pow(abs(h1)/scale,2)+pow(abs(h2)/scale,2))*np_temp;
           np(t+1)=np(t);
         }
         // 3dB factor comes from precoding for transmit diversity
-        syms=syms*pow(2,0.5);
+        syms = syms*pow(2,0.5);
       }
 
       // Extract the bits from the complex modulated symbols.
-      vec e_est=lte_demodulate(syms,np,modulation_t::QAM);
+      vec e_est = lte_demodulate(syms,np,modulation_t::QAM);
       // Unscramble
-      bvec scr=lte_pn(cell.n_id_cell(),length(e_est));
-      for (int32 t=0;t<length(e_est);t++) {
+      bvec scr = lte_pn(cell.n_id_cell(),length(e_est));
+      for (int32 t=0; t<length(e_est); t++) {
         if (scr(t)) e_est(t)=-e_est(t);
       }
       // Undo ratematching
-      mat d_est=lte_conv_deratematch(e_est,40);
+      mat d_est = lte_conv_deratematch(e_est,40);
       // Decode
-      c_est=lte_conv_decode(d_est);
+      c_est = lte_conv_decode(d_est);
       // Calculate received CRC
-      bvec crc_est=lte_calc_crc(c_est(0,23),CRC16);
+      bvec crc_est = lte_calc_crc(c_est(0,23),CRC16);
       // Apply CRC mask
-      if (n_ports==2) {
+      if (n_ports == 2) {
         for (uint8 t=0;t<16;t++) {
           crc_est(t)=1-((int)crc_est(t));
         }
@@ -1636,7 +1637,12 @@ Cell decode_mib(
       }
       // Did we find it?
       if (crc_est==c_est(24,-1)) {
-        // YES!
+        // YES! - TODO FIXME - when it hits this block we need to do more
+          // break this into function
+
+          // if valid_mib(data) # do this code block
+            // or whatever we're finding..
+
         cell_out.n_ports=n_ports;
         // Unpack the MIB
         ivec c_est_ivec=to_ivec(c_est);
