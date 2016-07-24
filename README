@@ -1,9 +1,8 @@
 # All testing is performed against the following configuration:
-* ubuntu 16.04
-* TODO: other versions
+* ubuntu 16.04 LTS
 
 # setup
-* sudo apt install cmake libitpp-dev libblas-dev librtlsdr-dev libncurses5-dev liblapack-dev librtlsdr-dev -y # there are more.. please create an issue if you identify more
+	sudo apt install cmake libitpp-dev libblas-dev librtlsdr-dev libncurses5-dev liblapack-dev librtlsdr-dev -y # there are more.. please create an issue if you identify more
 
 --------------------------
 LTE Cell Scanner / Tracker
