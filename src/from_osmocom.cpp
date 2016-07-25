@@ -41,8 +41,11 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <curses.h>
-#include "rtl-sdr.h"
 #include "common.h"
+
+#ifdef HAVE_RTLSDR
+
+#include "rtl-sdr.h"
 
 struct e4k_pll_params {
   uint32 fosc;
@@ -120,7 +123,8 @@ double compute_fc_programmed(const double & fosc,const double & intended_flo)
 	uint64_t intended_fvco, remainder;
 	uint64_t z = 0;
 	uint32_t x;
-	int flo;
+	//int flo;
+	uint32_t flo;
 	int three_phase_mixing = 0;
 	oscp->r_idx = 0;
 
@@ -164,4 +168,6 @@ double compute_fc_programmed(const double & fosc,const double & intended_flo)
 
 	return flo;
 }
+
+#endif // HAVE_RTLSDR
 

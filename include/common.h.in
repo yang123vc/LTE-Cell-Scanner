@@ -1,6 +1,14 @@
 #ifndef HAVE_COMMON_H
 #define HAVE_COMMON_H
 
+#define @USE_OPENCL@
+
+#define @HAVE_RTLSDR@
+
+#define @HAVE_HACKRF@
+
+#define @HAVE_BLADERF@
+
 // This is filled in by cmake
 #define MAJOR_VERSION @CellSearch_MAJOR_VERSION@
 #define MINOR_VERSION @CellSearch_MINOR_VERSION@
@@ -45,6 +53,11 @@ typedef std::vector < std::vector < float > > vf2d;
 
 // Some enums must be enclosed in their own namespace because their
 // names conflict with each other and also with ITPP declared enums.
+
+namespace dev_type_t {
+  enum dev_type_t { UNKNOWN = -4321, RTLSDR=9832, HACKRF=432134, BLADERF=94703 };
+}
+
 namespace cp_type_t {
   enum cp_type_t { UNKNOWN = 0, NORMAL, EXTENDED };
 }
@@ -106,8 +119,10 @@ class Cell {
     int32 ind;
     double freq;
     int8 n_id_2;
+    double k_factor;
 
     int16 n_id_1;
+    int8 duplex_mode;
     cp_type_t::cp_type_t cp_type;
     double frame_start;
     double freq_fine;

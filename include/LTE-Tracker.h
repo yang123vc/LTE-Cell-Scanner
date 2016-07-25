@@ -1,6 +1,8 @@
 #ifndef HAVE_LTE_TRACKER_H
 #define HAVE_LTE_TRACKER_H
 
+#include "capbuf.h"
+
 //
 // Data structures used to communicate between threads.
 //
@@ -22,23 +24,27 @@ class tracked_cell_t {
     tracked_cell_t(
       const uint16 & n_id_cell,
       const int8 & n_ports,
+      const int8 & duplex_mode,
       const cp_type_t::cp_type_t & cp_type,
       const int8 & n_rb_dl,
       const phich_duration_t::phich_duration_t & phich_duration,
       const phich_resource_t::phich_resource_t & phich_resource,
       const double & ft,
-      const uint32 & serial_num
+      const uint32 & serial_num//,
+//      const double & freq_superfine
     ) :
       n_id_1(floor(n_id_cell/3.0)),
       n_id_2(n_id_cell-3*floor(n_id_cell/3.0)),
       n_id_cell(n_id_cell),
       n_ports(n_ports),
+      duplex_mode(duplex_mode),
       cp_type(cp_type),
       n_rb_dl(n_rb_dl),
       phich_duration(phich_duration),
       phich_resource(phich_resource),
       serial_num(serial_num)
     {
+//      freq_superfine_private=freq_superfine;
       frame_timing_private=ft;
       fifo_peak_size=0;
       kill_me=false;
@@ -76,11 +82,13 @@ class tracked_cell_t {
     const uint8 n_id_2;
     const uint16 n_id_cell;
     const int8 n_ports;
+    const int8 duplex_mode;
     const cp_type_t::cp_type_t cp_type;
     const int8 n_rb_dl;
     const phich_duration_t::phich_duration_t phich_duration;
     const phich_resource_t::phich_resource_t phich_resource;
     const uint32 serial_num;
+//    const double freq_superfine;
 
     // Do we need this?
     boost::thread thread;
@@ -136,6 +144,18 @@ class tracked_cell_t {
       frame_timing_private=ft;
     }
 
+//    inline double freq_superfine() {
+//      boost::mutex::scoped_lock lock(freq_superfine_mutex);
+//      double r=freq_superfine_private;
+//      return r;
+//    }
+//
+//    void freq_superfine(const double & fs) {
+//      boost::mutex::scoped_lock lock(freq_superfine_mutex);
+//      freq_superfine_private=fs;
+////      freq_superfine_private++;
+//    }
+
     bool kill_me;
 
   private:
@@ -143,6 +163,9 @@ class tracked_cell_t {
     // threads.
     boost::mutex frame_timing_mutex;
     double frame_timing_private;
+
+//    boost::mutex freq_superfine_mutex;
+//    double freq_superfine_private;
 };
 
 // Structure that stores the list of all the tracked cells.
@@ -175,9 +198,86 @@ class global_thread_data_t {
     const double fc_requested;
     const double fc_programmed;
     const double fs_programmed;
-    // Read/write frequency offset (via mutex).
+    // Read/write frequency offset, k_factor, sampling_carrier_twist (via mutex).
     // Mutex makes sure that no read or write is interrupted when
     // only part of the data has been read.
+    inline uint16 opencl_device() {
+      boost::mutex::scoped_lock lock(opencl_device_mutex);
+      uint16 r=opencl_device_private;
+      return r;
+    }
+    inline void opencl_device(const uint16 & f) {
+      boost::mutex::scoped_lock lock(opencl_device_mutex);
+      opencl_device_private=f;
+    }
+
+    inline int dev_use() {
+      boost::mutex::scoped_lock lock(dev_use_mutex);
+      int r=dev_use_private;
+      return r;
+    }
+    inline void dev_use(const int & f) {
+      boost::mutex::scoped_lock lock(dev_use_mutex);
+      dev_use_private=f;
+    }
+
+    inline uint16 opencl_platform() {
+      boost::mutex::scoped_lock lock(opencl_platform_mutex);
+      uint16 r=opencl_platform_private;
+      return r;
+    }
+    inline void opencl_platform(const uint16 & f) {
+      boost::mutex::scoped_lock lock(opencl_platform_mutex);
+      opencl_platform_private=f;
+    }
+    inline uint16 filter_workitem() {
+      boost::mutex::scoped_lock lock(filter_workitem_mutex);
+      uint16 r=filter_workitem_private;
+      return r;
+    }
+    inline void filter_workitem(const uint16 & f) {
+      boost::mutex::scoped_lock lock(filter_workitem_mutex);
+      filter_workitem_private=f;
+    }
+    inline uint16 xcorr_workitem() {
+      boost::mutex::scoped_lock lock(xcorr_workitem_mutex);
+      uint16 r=xcorr_workitem_private;
+      return r;
+    }
+    inline void xcorr_workitem(const uint16 & f) {
+      boost::mutex::scoped_lock lock(xcorr_workitem_mutex);
+      xcorr_workitem_private=f;
+    }
+    inline bool sampling_carrier_twist() {
+      boost::mutex::scoped_lock lock(sampling_carrier_twist_mutex);
+      bool r=sampling_carrier_twist_private;
+      return r;
+    }
+    inline void sampling_carrier_twist(const bool & f) {
+      boost::mutex::scoped_lock lock(sampling_carrier_twist_mutex);
+      sampling_carrier_twist_private=f;
+    }
+
+    inline double correction() {
+      boost::mutex::scoped_lock lock(correction_mutex);
+      double r=correction_private;
+      return r;
+    }
+    inline void correction(const double & f) {
+      boost::mutex::scoped_lock lock(correction_mutex);
+      correction_private=f;
+    }
+
+    inline double k_factor() {
+      boost::mutex::scoped_lock lock(k_factor_mutex);
+      double r=k_factor_private;
+      return r;
+    }
+    inline void k_factor(const double & f) {
+      boost::mutex::scoped_lock lock(k_factor_mutex);
+      k_factor_private=f;
+    }
+
     inline double frequency_offset() {
       boost::mutex::scoped_lock lock(frequency_offset_mutex);
       double r=frequency_offset_private;
@@ -187,6 +287,47 @@ class global_thread_data_t {
       boost::mutex::scoped_lock lock(frequency_offset_mutex);
       frequency_offset_private=f;
     }
+
+    inline double initial_frequency_offset() {
+      boost::mutex::scoped_lock lock(initial_frequency_offset_mutex);
+      double r=initial_frequency_offset_private;
+      return r;
+    }
+    inline void initial_frequency_offset(const double & f) {
+      boost::mutex::scoped_lock lock(initial_frequency_offset_mutex);
+      initial_frequency_offset_private=f;
+    }
+
+    inline rtlsdr_dev_t* rtlsdr_dev() {
+      boost::mutex::scoped_lock lock(rtlsdr_dev_mutex);
+      rtlsdr_dev_t* r=rtlsdr_dev_private;
+      return r;
+    }
+    inline void rtlsdr_dev(rtlsdr_dev_t * f) {
+      boost::mutex::scoped_lock lock(rtlsdr_dev_mutex);
+      rtlsdr_dev_private=f;
+    }
+
+    inline hackrf_device* hackrf_dev() {
+      boost::mutex::scoped_lock lock(hackrf_dev_mutex);
+      hackrf_device* r=hackrf_dev_private;
+      return r;
+    }
+    inline void hackrf_dev(hackrf_device * f) {
+      boost::mutex::scoped_lock lock(hackrf_dev_mutex);
+      hackrf_dev_private=f;
+    }
+
+    inline bladerf_device* bladerf_dev() {
+      boost::mutex::scoped_lock lock(bladerf_dev_mutex);
+      bladerf_device* r=bladerf_dev_private;
+      return r;
+    }
+    inline void bladerf_dev(bladerf_device * f) {
+      boost::mutex::scoped_lock lock(bladerf_dev_mutex);
+      bladerf_dev_private=f;
+    }
+
     // Read/write searcher cycle time (via mutex).
     // Mutex makes sure that no read or write is interrupted when
     // only part of the data has been read.
@@ -224,14 +365,53 @@ class global_thread_data_t {
   private:
     // The frequency offset of the dongle. This value will be updated
     // continuously.
+    boost::mutex opencl_platform_mutex;
+    uint16 opencl_platform_private;
+
+    boost::mutex dev_use_mutex;
+    int dev_use_private;
+
+    boost::mutex opencl_device_mutex;
+    uint16 opencl_device_private;
+
+    boost::mutex xcorr_workitem_mutex;
+    uint16 xcorr_workitem_private;
+
+    boost::mutex filter_workitem_mutex;
+    uint16 filter_workitem_private;
+
+    boost::mutex sampling_carrier_twist_mutex;
+    bool sampling_carrier_twist_private;
+
+    boost::mutex correction_mutex;
+    double correction_private;
+
+    boost::mutex k_factor_mutex;
+    double k_factor_private;
+
     boost::mutex frequency_offset_mutex;
     double frequency_offset_private;
+
+    boost::mutex initial_frequency_offset_mutex;
+    double initial_frequency_offset_private;
+
     boost::mutex searcher_cycle_time_mutex;
     double searcher_cycle_time_private;
+
     boost::mutex cell_seconds_dropped_mutex;
     uint32 cell_seconds_dropped_private;
+
     boost::mutex raw_seconds_dropped_mutex;
     uint32 raw_seconds_dropped_private;
+
+    boost::mutex rtlsdr_dev_mutex;
+    rtlsdr_dev_t* rtlsdr_dev_private;
+
+    boost::mutex hackrf_dev_mutex;
+    hackrf_device* hackrf_dev_private;
+
+    boost::mutex bladerf_dev_mutex;
+    bladerf_device* bladerf_dev_private;
 };
 
 // IPC between main thread and searcher thread covering data capture issues.
@@ -247,7 +427,7 @@ typedef struct {
 typedef struct {
   boost::mutex mutex;
   boost::condition condition;
-  std::deque <uint8> fifo;
+  std::deque <int8> fifo;
   uint32 fifo_peak_size;
 } sampbuf_sync_t;
 

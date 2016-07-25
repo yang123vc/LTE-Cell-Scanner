@@ -17,10 +17,21 @@
 
 #include <itpp/itbase.h>
 #include <vector>
-#include "rtl-sdr.h"
 #include "common.h"
 #include "lte_lib.h"
 #include "constants.h"
+
+#ifdef HAVE_RTLSDR
+#include "rtl-sdr.h"
+#endif // HAVE_RTLSDR
+
+#ifdef HAVE_HACKRF
+#include "hackrf.h"
+#endif
+
+#ifdef HAVE_BLADERF
+#include <libbladeRF.h>
+#endif
 
 // Instantiate the tables
 Rom_tables ROM_TABLES;

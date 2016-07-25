@@ -17,30 +17,28 @@
 
 #include <itpp/itbase.h>
 #include <boost/math/special_functions/gamma.hpp>
-#include "rtl-sdr.h"
 #include "common.h"
 #include "macros.h"
 #include "itpp_ext.h"
 #include "dsp.h"
 
+#ifdef HAVE_RTLSDR
+#include "rtl-sdr.h"
+#endif // HAVE_RTLSDR
+
+#ifdef HAVE_HACKRF
+#include "hackrf.h"
+#endif
+
+#ifdef HAVE_BLADERF
+#include <libbladeRF.h>
+#endif
+
 using namespace std;
 
 // Cell class member functions
-/*
-WHAT IS A "CELL"? unit of TFG?
-*/
-
-
-// cell ID AFAIK - see searcher_thread.cpp
-
-// should be CID?? why was it called n_id_cell???
 int16 const Cell::n_id_cell() const {
-  if((n_id_1 >= 0) && (n_id_ 2>= 0)){
-    return n_id_2 + 3*n_id_1; //
-  }
-  return -1;
-
-  // original code: return ((n_id_1>=0) && (n_id_2>=0)) ? (n_id_2+3*n_id_1): -1;
+  return ((n_id_1>=0)&&(n_id_2>=0))?(n_id_2+3*n_id_1):-1;
 }
 int8 const Cell::n_symb_dl() const {
   return (cp_type==cp_type_t::NORMAL)?7:((cp_type==cp_type_t::EXTENDED)?6:-1);
@@ -52,10 +50,11 @@ Cell::Cell() :
   pss_pow(NAN),
   ind(-1),
   freq(NAN),
+  n_id_2(-1),
+  k_factor(NAN),
 
-  n_id_2(-1), // FIXME: should be "NID2"
-  n_id_1(-1), // FIXME: should this be "NID1"
-
+  n_id_1(-1),
+  duplex_mode(-1),
   cp_type(cp_type_t::UNKNOWN),
   frame_start(NAN),
   freq_fine(NAN),
@@ -118,3 +117,4 @@ ostream & operator<< (
 
   return os;
 }
+

@@ -30,7 +30,6 @@
 #include <queue>
 #include <sys/syscall.h>
 #include <sys/types.h>
-#include "rtl-sdr.h"
 #include "common.h"
 #include "macros.h"
 #include "lte_lib.h"
@@ -39,8 +38,19 @@
 #include "itpp_ext.h"
 #include "searcher.h"
 #include "dsp.h"
-#include "rtl-sdr.h"
 #include "LTE-Tracker.h"
+
+#ifdef HAVE_RTLSDR
+#include "rtl-sdr.h"
+#endif // HAVE_RTLSDR
+
+#ifdef HAVE_HACKRF
+#include "hackrf.h"
+#endif
+
+#ifdef HAVE_BLADERF
+#include <libbladeRF.h>
+#endif // HAVE_BLADERF
 
 using namespace itpp;
 using namespace std;
@@ -96,7 +106,16 @@ void producer_thread(
   while (true) {
     // Each iteration of this loop processes one block of data.
     const double frequency_offset=global_thread_data.frequency_offset();
-    const double k_factor=(global_thread_data.fc_requested-frequency_offset)/global_thread_data.fc_programmed;
+    double k_factor = 1.0;// !!!THIS need to be handled correctly in the future when carrier-sampling isn't twisted. TIMING info should be updated according to phase rotation of FD response of main path
+
+//    if ( global_thread_data.dev_use()!=dev_type_t::RTLSDR ) {// !!!THIS need to be handled correctly in the future when carrier-sampling isn't twisted. TIMING info should be updated according to phase rotation of FD response of main path
+      if (global_thread_data.sampling_carrier_twist()){
+        k_factor=(global_thread_data.fc_programmed-frequency_offset)/global_thread_data.fc_programmed;
+      } else {
+        k_factor=global_thread_data.k_factor(); // !!!THIS need to be handled correctly in the future when carrier-sampling isn't twisted. TIMING info should be updated according to phase rotation of FD response of main path
+      }
+//    }
+
     //const double k_factor_inv=1/k_factor;
     const double & fs_programmed=global_thread_data.fs_programmed;
 
@@ -124,9 +143,9 @@ void producer_thread(
           n_samples=t;
           break;
         }
-        sample_temp.real()=(sampbuf_sync.fifo.front()-127.0)/128.0;
+        sample_temp.real()=(sampbuf_sync.fifo.front())/128.0; // 127 should be 128?
         sampbuf_sync.fifo.pop_front();
-        sample_temp.imag()=(sampbuf_sync.fifo.front()-127.0)/128.0;
+        sample_temp.imag()=(sampbuf_sync.fifo.front())/128.0; // 127 should be 128?
         sampbuf_sync.fifo.pop_front();
         samples(t)=sample_temp;
         sample_time+=(FS_LTE/16)/(fs_programmed*k_factor);
@@ -160,16 +179,17 @@ void producer_thread(
       }
     }
 
-    // Loop for each tracked cell and save data, if necessary. Also delete threads that may have lost lock.
+    // Loop for each tracked cell and save data, if necessary. Also delete
+    // threads that may have lost lock.
     {
       boost::mutex::scoped_lock lock(tracked_cell_list.mutex);
-      list <tracked_cell_t *>::iterator it = tracked_cell_list.tracked_cells.begin();
-      while (it != tracked_cell_list.tracked_cells.end()) {
+      list <tracked_cell_t *>::iterator it=tracked_cell_list.tracked_cells.begin();
+      while (it!=tracked_cell_list.tracked_cells.end()) {
         tracked_cell_t & tracked_cell=(*(*it));
         // See if this thread has been launched yet. If not, launch it.
         if (!tracked_cell.launched) {
-          tracked_cell.thread = boost::thread(tracker_thread, boost::ref(tracked_cell), boost::ref(global_thread_data));
-          tracked_cell.launched = true;
+          tracked_cell.thread=boost::thread(tracker_thread,boost::ref(tracked_cell),boost::ref(global_thread_data));
+          tracked_cell.launched=true;
         }
         double frame_timing = tracked_cell.frame_timing();
 
@@ -249,3 +269,4 @@ void producer_thread(
     }
   }
 }
+

@@ -21,9 +21,20 @@
 #include <string.h>
 #include <stdlib.h>
 #include <curses.h>
-#include "rtl-sdr.h"
 #include "common.h"
 #include "macros.h"
+
+#ifdef HAVE_RTLSDR
+#include "rtl-sdr.h"
+#endif // HAVE_RTLSDR
+
+#ifdef HAVE_HACKRF
+#include "hackrf.h"
+#endif
+
+#ifdef HAVE_BLADERF
+#include <libbladeRF.h>
+#endif
 
 // 'Extensions' to itpp that probably should have been included in itpp.
 namespace itpp_ext {
