@@ -26,6 +26,10 @@
 using namespace std;
 
 // Cell class member functions
+/*
+WHAT IS A "CELL"? unit of TFG?
+*/
+
 
 // cell ID AFAIK - see searcher_thread.cpp
 

@@ -193,7 +193,7 @@ void searcher_thread(
       (*iterator)=tfoec((*iterator),tfg,tfg_timestamp,fc_requested,fc_programmed,rs_dl,tfg_comp,tfg_comp_timestamp);
 
       // Finally, attempt to decode the MIB
-      (*iterator)=decode_mib((*iterator),tfg_comp,rs_dl);
+      (*iterator) = decode_mib((*iterator), tfg_comp, rs_dl);
       //cout << (*iterator) << endl << endl;
       //sleep(100000);
       if ((*iterator).n_rb_dl==-1) {

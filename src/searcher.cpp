@@ -744,7 +744,7 @@ Cell sss_detect(
 
   // Estimate n_id_1.
   int32 n_id_1_est;
-  double lik_final=max(ll,n_id_1_est);
+  double lik_final = max(ll,n_id_1_est);
 
   // Second threshold check to weed out some weak signals.
   Cell cell_out(cell);
@@ -854,6 +854,8 @@ Cell pss_sss_foe(
 // Note that this function is inefficient in that it returns the time/
 // frequency grid for nearly all samples in the capture buffer whereas
 // in reality, we are only interested in the OFDM symbols containing the MIB.
+
+// GREPME
 void extract_tfg(
   // Inputs
   const Cell & cell,
@@ -866,68 +868,68 @@ void extract_tfg(
   vec & tfg_timestamp
 ) {
   // Local shortcuts
-  const double frame_start=cell.frame_start;
-  const cp_type_t::cp_type_t cp_type=cell.cp_type;
-  const double freq_fine=cell.freq_fine;
+  const double frame_start = cell.frame_start;
+  const cp_type_t::cp_type_t cp_type = cell.cp_type;
+  const double freq_fine = cell.freq_fine;
 
   // Derive some values
   // fc*k_factor is the receiver's actual RX center frequency.
-  const double k_factor=(fc_requested-cell.freq_fine)/fc_programmed;
-  const int8 n_symb_dl=cell.n_symb_dl();
+  const double k_factor = (fc_requested-cell.freq_fine)/fc_programmed;
+  const int8 n_symb_dl = cell.n_symb_dl();
   double dft_location;
-  if (cp_type==cp_type_t::NORMAL) {
-    dft_location=frame_start+10*16/FS_LTE*fs_programmed*k_factor;
-  } else if (cp_type==cp_type_t::EXTENDED) {
-    dft_location=frame_start+32*16/FS_LTE*fs_programmed*k_factor;
+  if (cp_type == cp_type_t::NORMAL) {
+    dft_location = frame_start+10*16/FS_LTE*fs_programmed*k_factor;
+  } else if (cp_type == cp_type_t::EXTENDED) {
+    dft_location = frame_start+32*16/FS_LTE*fs_programmed*k_factor;
   } else {
     throw("Check code...");
   }
 
   // See if we can advance the frame start
-  if (dft_location-.01*fs_programmed*k_factor>-0.5) {
-    dft_location=dft_location-.01*fs_programmed*k_factor;
+  if (dft_location-.01*fs_programmed*k_factor > -0.5) {
+    dft_location = dft_location-.01*fs_programmed*k_factor;
   }
 
   // Perform FOC
-  cvec capbuf=fshift(capbuf_raw,-freq_fine,fs_programmed*k_factor);
+  cvec capbuf = fshift(capbuf_raw,-freq_fine,fs_programmed*k_factor);
 
   // Extract 6 frames + 2 slots worth of data
-  uint16 n_ofdm_sym=6*10*2*n_symb_dl+2*n_symb_dl;
-  tfg=cmat(n_ofdm_sym,72);
-  tfg_timestamp=vec(n_ofdm_sym);
+  uint16 n_ofdm_sym = 6*10*2*n_symb_dl+2*n_symb_dl;
+  tfg = cmat(n_ofdm_sym,72);
+  tfg_timestamp = vec(n_ofdm_sym);
 #ifndef NDEBUG
-  tfg=NAN;
-  tfg_timestamp=NAN;
+  tfg = NAN;
+  tfg_timestamp = NAN;
 #endif
-  uint16 sym_num=0;
-  for (uint16 t=0;t<n_ofdm_sym;t++) {
-    cvec dft_out=dft(capbuf.mid(round_i(dft_location),128));
+  uint16 sym_num = 0;
+  for (uint16 t = 0; t < n_ofdm_sym; t++) {
+    cvec dft_out = dft(capbuf.mid(round_i(dft_location),128));
     tfg.set_row(t,concat(dft_out.right(36),dft_out.mid(1,36)));
     // Record the time offset where the DFT _should_ have been taken.
     // It was actually taken at the nearest sample boundary.
-    tfg_timestamp(t)=dft_location;
+    tfg_timestamp(t)=dft_location; // FIXME: what??
     // Calculate location of next DFT
-    if (n_symb_dl==6) {
-      dft_location+=(128+32)*16/FS_LTE*fs_programmed*k_factor;
+    if (n_symb_dl == 6) {
+      dft_location += (128+32)*16/FS_LTE*fs_programmed*k_factor;
     } else {
-      if (sym_num==6) {
-        dft_location+=(128+10)*16/FS_LTE*fs_programmed*k_factor;
+      if (sym_num == 6) {
+        dft_location += (128+10)*16/FS_LTE*fs_programmed*k_factor;
       } else {
-        dft_location+=(128+9)*16/FS_LTE*fs_programmed*k_factor;
+        dft_location += (128+9)*16/FS_LTE*fs_programmed*k_factor;
       }
-      sym_num=mod(sym_num+1,7);
+      sym_num = mod(sym_num+1,7);
     }
   }
 
   // Compensate for the residual time offset.
-  ivec cn=concat(itpp_ext::matlab_range(-36,-1),itpp_ext::matlab_range(1,36));
-  for (uint16 t=0;t<n_ofdm_sym;t++) {
-    double ideal_offset=tfg_timestamp(t);
-    double actual_offset=round_i(ideal_offset);
+  ivec cn = concat(itpp_ext::matlab_range(-36,-1),itpp_ext::matlab_range(1,36));
+  for(uint16 t = 0; t < n_ofdm_sym; t++) {
+    double ideal_offset = tfg_timestamp(t);
+    double actual_offset = round_i(ideal_offset);
     // How late were we in locating the DFT
-    double late=actual_offset-ideal_offset;
+    double late = actual_offset-ideal_offset;
     // Compensate for the improper location of the DFT
-    tfg.set_row(t,elem_mult(tfg.get_row(t),exp((-J*2*pi*late/128)*cn)));
+    tfg.set_row(t, elem_mult(tfg.get_row(t), exp((-J*2*pi*late/128)*cn)));
   }
   // At this point, tfg(t,:) contains the results of a DFT that was performed
   // at time offset tfg_timestamp(t). Note that tfg_timestamp(t) is not an
@@ -962,44 +964,44 @@ Cell tfoec(
   vec & tfg_comp_timestamp
 ) {
   // Local shortcuts
-  const int8 n_symb_dl=cell.n_symb_dl();
-  uint16 n_ofdm=tfg.rows();
-  uint16 n_slot=floor(((double)n_ofdm)/n_symb_dl);
+  const int8 n_symb_dl = cell.n_symb_dl();
+  uint16 n_ofdm = tfg.rows();
+  uint16 n_slot = floor(((double)n_ofdm)/n_symb_dl);
 
   // Perform super-fine FOE
   complex <double> foe;
-  for (uint8 sym_num=0;sym_num<=n_symb_dl-3;sym_num+=n_symb_dl-3) {
+  for (uint8 sym_num = 0; sym_num <= n_symb_dl-3; sym_num += n_symb_dl-3) {
     // Extract all the RS and compensate for the known transmitted symbols.
     cmat rs_extracted(n_slot,12);
 #ifndef NDEBUG
-    rs_extracted=NAN;
+    rs_extracted = NAN;
 #endif
-    for (uint16 t=0;t<n_slot;t++) {
+    for(uint16 t = 0; t < n_slot; t++){
       // Extract RS
       rs_extracted.set_row(t,tfg.get_row(t*n_symb_dl+sym_num).get(itpp_ext::matlab_range((uint32)rs_dl.get_shift(mod(t,20),sym_num,0),(uint32)6,(uint32)71)));
       // Compensate
       rs_extracted.set_row(t,elem_mult(rs_extracted.get_row(t),conj(rs_dl.get_rs(mod(t,20),sym_num))));
     }
     // FOE, subcarrier by subcarrier.
-    for (uint16 t=0;t<12;t++) {
-      cvec col=rs_extracted.get_col(t);
-      foe=foe+sum(elem_mult(conj(col(0,n_slot-2)),col(1,-1)));
+    for(uint16 t = 0; t < 12; t++) {
+      cvec col = rs_extracted.get_col(t);
+      foe = foe + sum(elem_mult(conj(col(0,n_slot-2)),col(1,-1)));
     }
   }
-  double residual_f=arg(foe)/(2*pi)/0.0005;
+  double residual_f = arg(foe)/(2*pi)/0.0005;
 
   // Perform FOC. Does not fix ICI!
-  double k_factor_residual=(fc_requested-residual_f)/fc_programmed;
-  tfg_comp=cmat(n_ofdm,72);
+  double k_factor_residual = (fc_requested-residual_f)/fc_programmed;
+  tfg_comp = cmat(n_ofdm,72);
 #ifndef NDEBUG
   tfg_comp=NAN;
 #endif
-  tfg_comp_timestamp=k_factor_residual*tfg_timestamp;
-  ivec cn=concat(itpp_ext::matlab_range(-36,-1),itpp_ext::matlab_range(1,36));
-  for (uint16 t=0;t<n_ofdm;t++) {
-    tfg_comp.set_row(t,tfg.get_row(t)*exp(J*2*pi*-residual_f*tfg_comp_timestamp(t)/(FS_LTE/16)));
+  tfg_comp_timestamp = k_factor_residual*tfg_timestamp;
+  ivec cn = concat(itpp_ext::matlab_range(-36,-1),itpp_ext::matlab_range(1,36));
+  for (uint16 t = 0; t < n_ofdm; t++) {
+    tfg_comp.set_row(t, tfg.get_row(t)*exp(J*2*pi*-residual_f*tfg_comp_timestamp(t)/(FS_LTE/16)));
     // How late were we in locating the DFT
-    double late=tfg_timestamp(t)-tfg_comp_timestamp(t);
+    double late = tfg_timestamp(t)-tfg_comp_timestamp(t);
     // Compensate for the improper location of the DFT
     tfg_comp.set_row(t,elem_mult(tfg_comp.get_row(t),exp((-J*2*pi*late/128)*cn)));
   }
@@ -1010,61 +1012,61 @@ Cell tfoec(
   // Slightly less performance but faster execution time could be obtained
   // by comparing subcarrier k with subcarrier k+6 of the same OFDM symbol.
   complex <double> toe=0;
-  for (uint16 t=0;t<2*n_slot-1;t++) {
+  for (uint16 t = 0; t < 2*n_slot-1; t++) {
     // Current OFDM symbol containing RS
-    uint8 current_sym_num=(t&1)?(n_symb_dl-3):0;
-    uint8 current_slot_num=mod((t>>1),20);
-    uint16 current_offset=(t>>1)*n_symb_dl+current_sym_num;
+    uint8 current_sym_num = (t&1)?(n_symb_dl-3):0;
+    uint8 current_slot_num = mod((t>>1),20);
+    uint16 current_offset = (t>>1)*n_symb_dl+current_sym_num;
     // Since we are using port 0, the shift is the same for all slots.
-    uint8 current_shift=rs_dl.get_shift(0,current_sym_num,0);
+    uint8 current_shift = rs_dl.get_shift(0,current_sym_num,0);
     // Next OFDM symbol containing RS
-    uint8 next_sym_num=((t+1)&1)?(n_symb_dl-3):0;
-    uint8 next_slot_num=mod(((t+1)>>1),20);
-    uint16 next_offset=((t+1)>>1)*n_symb_dl+next_sym_num;
+    uint8 next_sym_num = ((t+1)&1)?(n_symb_dl-3):0;
+    uint8 next_slot_num = mod(((t+1)>>1),20);
+    uint16 next_offset = ((t+1)>>1)*n_symb_dl+next_sym_num;
     // Since we are using port 0, the shift is the same for all slots.
-    uint8 next_shift=rs_dl.get_shift(0,next_sym_num,0);
+    uint8 next_shift = rs_dl.get_shift(0,next_sym_num,0);
 
     uint16 r1_offset,r2_offset;
     uint8 r1_shift,r2_shift;
     uint8 r1_sym_num,r2_sym_num;
     uint8 r1_slot_num,r2_slot_num;
-    if (current_shift<next_shift) {
-      r1_offset=current_offset;
-      r1_shift=current_shift;
-      r1_sym_num=current_sym_num;
-      r1_slot_num=current_slot_num;
-      r2_offset=next_offset;
-      r2_shift=next_shift;
-      r2_sym_num=next_sym_num;
-      r2_slot_num=next_slot_num;
+    if (current_shift < next_shift) {
+      r1_offset = current_offset;
+      r1_shift = current_shift;
+      r1_sym_num = current_sym_num;
+      r1_slot_num = current_slot_num;
+      r2_offset = next_offset;
+      r2_shift = next_shift;
+      r2_sym_num = next_sym_num;
+      r2_slot_num = next_slot_num;
     } else {
-      r1_offset=next_offset;
-      r1_shift=next_shift;
-      r1_sym_num=next_sym_num;
-      r1_slot_num=next_slot_num;
-      r2_offset=current_offset;
-      r2_shift=current_shift;
-      r2_sym_num=current_sym_num;
-      r2_slot_num=current_slot_num;
+      r1_offset = next_offset;
+      r1_shift = next_shift;
+      r1_sym_num = next_sym_num;
+      r1_slot_num = next_slot_num;
+      r2_offset = current_offset;
+      r2_shift = current_shift;
+      r2_sym_num = current_sym_num;
+      r2_slot_num = current_slot_num;
     }
-    cvec r1v=tfg_comp.get_row(r1_offset).get(itpp_ext::matlab_range(r1_shift,6,71));
-    r1v=elem_mult(r1v,conj(rs_dl.get_rs(r1_slot_num,r1_sym_num)));
-    cvec r2v=tfg_comp.get_row(r2_offset).get(itpp_ext::matlab_range(r2_shift,6,71));
-    r2v=elem_mult(r2v,conj(rs_dl.get_rs(r2_slot_num,r2_sym_num)));
-    complex<double> toe1=sum(elem_mult(conj(r1v),r2v));
-    complex<double> toe2=sum(elem_mult(conj(r2v(0,10)),r1v(1,11)));
-    toe+=toe1+toe2;
+    cvec r1v = tfg_comp.get_row(r1_offset).get(itpp_ext::matlab_range(r1_shift,6,71));
+    r1v = elem_mult(r1v,conj(rs_dl.get_rs(r1_slot_num,r1_sym_num)));
+    cvec r2v = tfg_comp.get_row(r2_offset).get(itpp_ext::matlab_range(r2_shift,6,71));
+    r2v = elem_mult(r2v,conj(rs_dl.get_rs(r2_slot_num,r2_sym_num)));
+    complex<double> toe1 = sum(elem_mult(conj(r1v),r2v));
+    complex<double> toe2 = sum(elem_mult(conj(r2v(0,10)),r1v(1,11)));
+    toe += toe1+toe2;
   }
-  double delay=-arg(toe)/3/(2*pi/128);
+  double delay = -arg(toe)/3/(2*pi/128);
 
   // Perform TOC
-  cvec comp_vector=exp((J*2*pi/128*delay)*cn);
-  for (uint16 t=0;t<n_ofdm;t++) {
-    tfg_comp.set_row(t,elem_mult(tfg_comp.get_row(t),comp_vector));
+  cvec comp_vector = exp((J*2*pi/128*delay)*cn);
+  for (uint16 t = 0; t < n_ofdm; t++) {
+    tfg_comp.set_row(t, elem_mult(tfg_comp.get_row(t), comp_vector));
   }
 
   Cell cell_out(cell);
-  cell_out.freq_superfine=cell_out.freq_fine+residual_f;
+  cell_out.freq_superfine = cell_out.freq_fine + residual_f;
   return cell_out;
 }
 
@@ -1522,8 +1524,10 @@ void pbch_extract(
   ASSERT(idx==m_bit/2);
 }
 
-// Blindly try various frame alignments and numbers of antennas to try
-// to find a valid MIB.
+// Blindly try various frame alignments and numbers of antennas to find valid MIBs.
+
+// decode_mib called from CellSearch.cpp, searcher_thread.cpp
+  // also called from LTE-Tracker.cpp - but ignore for now
 Cell decode_mib(
   const Cell & cell,
   const cmat & tfg,
@@ -1695,4 +1699,14 @@ Cell decode_mib(
   }
 
   return cell_out;
-}
+} // decode_mib
+
+/*
+// TODO: how would this function be called?
+Cell decode_sib(
+  const Cell & cell,
+  const cmat & tfg,
+  const RS_DL & rs_dl
+){
+
+}*/
