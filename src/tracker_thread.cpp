@@ -50,6 +50,7 @@ typedef struct{
   uint8 sym_num;
   cvec syms;
 } data_fifo_pdu_t;
+
 // Data structure used to store the 'raw' channel estimates
 typedef struct {
   double shift;
@@ -59,6 +60,7 @@ typedef struct {
   double frequency_offset;
   double frame_timing;
 } ce_raw_fifo_pdu_t;
+
 // Data structure used to store the filtered channel estimates
 typedef struct {
   double shift;
@@ -70,6 +72,7 @@ typedef struct {
   double np;
   cvec ce_filt;
 } ce_filt_fifo_pdu_t;
+
 typedef struct {
   uint8 slot_num;
   uint8 sym_num;
@@ -79,6 +82,7 @@ typedef struct {
   double np;
   cvec ce_interp;
 } ce_interp_fifo_pdu_t;
+
 typedef struct {
   cvec syms;
   cmat ce;
@@ -827,13 +831,13 @@ void tracker_thread(
   // Pre-compute some information.
   //ivec cn=concat(itpp_ext::matlab_range(-36,-1),itpp_ext::matlab_range(1,36));
   // Reference symbols
-  RS_DL rs_dl(tracked_cell.n_id_cell,6,tracked_cell.cp_type);
+  RS_DL rs_dl(tracked_cell.n_id_cell, 6, tracked_cell.cp_type);
   // MIB scrambling sequence.
-  const bvec scr=lte_pn(tracked_cell.n_id_cell,(tracked_cell.cp_type==cp_type_t::NORMAL)?1920:1728);
+  const bvec scr = lte_pn(tracked_cell.n_id_cell, (tracked_cell.cp_type==cp_type_t::NORMAL)?1920:1728);
 
-  uint8 slot_num=0;
-  uint8 sym_num=0;
-  double bulk_phase_offset=0;
+  uint8 slot_num = 0;
+  uint8 sym_num = 0;
+  double bulk_phase_offset = 0;
   deque <data_fifo_pdu_t> data_fifo;
   vector <deque <ce_raw_fifo_pdu_t> > ce_raw_fifo(tracked_cell.n_ports);
   vector <deque <ce_filt_fifo_pdu_t> > ce_filt_fifo(tracked_cell.n_ports);
@@ -851,16 +855,19 @@ void tracker_thread(
   // Now that everything has been initialized, indicate to the producer
   // thread that we are ready for data.
   // Data flow starts at the beginning of the next frame.
-  tracked_cell.tracker_thread_ready=true;
+  tracked_cell.tracker_thread_ready = true;
   // Each iteration of this loop processes one OFDM symbol.
   while (true) {
     // If there is more than 1.5s worth of data in the fifo, dump
     // data to allow the tracker threads to catch up.
+
+    // TODO: need to indicate data is being lost - this is important optimize datapoint.
+
     {
       boost::mutex::scoped_lock lock(tracked_cell.fifo_mutex);
-      uint16 n_ofdm_1s=(tracked_cell.cp_type==cp_type_t::NORMAL)?(7*2*1000):(6*2*1000);
-      while (tracked_cell.fifo.size()>n_ofdm_1s*1.5) {
-        for (uint32 t=0;t<n_ofdm_1s;t++) {
+      uint16 n_ofdm_1s = (tracked_cell.cp_type == cp_type_t::NORMAL)?(7*2*1000):(6*2*1000);
+      while (tracked_cell.fifo.size() > n_ofdm_1s*1.5) {
+        for (uint32 t = 0; t < n_ofdm_1s; t++) {
           tracked_cell.fifo.pop();
         }
         global_thread_data.cell_seconds_dropped_inc();
@@ -872,21 +879,21 @@ void tracker_thread(
     double frequency_offset;
     double frame_timing;
     //get_fd(tracked_cell,global_thread_data.fc,slot_num,sym_num,cn,bulk_phase_offset,syms,frequency_offset,frame_timing);
-    get_fd(tracked_cell,global_thread_data.fc_requested,global_thread_data.fc_programmed,global_thread_data.fs_programmed,slot_num,sym_num,bulk_phase_offset,syms,frequency_offset,frame_timing);
+    get_fd(tracked_cell, global_thread_data.fc_requested, global_thread_data.fc_programmed, global_thread_data.fs_programmed, slot_num,sym_num,bulk_phase_offset,syms,frequency_offset,frame_timing);
 
     // Save this information into the data fifo for further processing
     // once channel estimates are ready. Channel estimates for this OFDM
     // symbol may not be ready until several more OFDM symbols have been
     // received.
     data_fifo_pdu_t dfp;
-    dfp.slot_num=slot_num;
-    dfp.sym_num=sym_num;
-    dfp.syms=syms;
+    dfp.slot_num = slot_num;
+    dfp.sym_num = sym_num;
+    dfp.syms = syms;
     data_fifo.push_back(dfp);
 
     // Extract any RS that might be present.
-    for (uint8 port_num=0;port_num<tracked_cell.n_ports;port_num++) {
-      double shift=rs_dl.get_shift(slot_num,sym_num,port_num);
+    for (uint8 port_num = 0; port_num < tracked_cell.n_ports; port_num++) {
+      double shift = rs_dl.get_shift(slot_num,sym_num,port_num);
       if (isnan(shift))
         continue;
       //cout << "S" << shift << endl;
@@ -909,7 +916,7 @@ void tracker_thread(
     // channel estimates. Also perform some measurements.
     // All tasks that need access to the raw channel estimates should
     // go in this loop.
-    for (uint8 port_num=0;port_num<tracked_cell.n_ports;port_num++) {
+    for (uint8 port_num = 0; port_num < tracked_cell.n_ports; port_num++) {
       // In order to filter the raw channel estimates for OFDM symbol n,
       // we need the raw channel estimates for OFDM symbols n-1, n, and n+1.
       if (ce_raw_fifo[port_num].size()!=3)
@@ -921,41 +928,41 @@ void tracker_thread(
       ce_raw_fifo_pdu_t & rs_next=ce_raw_fifo[port_num][2];
 
       // Perform primitive filtering by averaging nearby samples.
-      const cvec rs_curr_filt=filter_ce(rs_prev,rs_curr,rs_next);
+      const cvec rs_curr_filt = filter_ce(rs_prev,rs_curr,rs_next);
       // Note correction for the estimation bias.
-      const double rs_curr_np=sigpower(rs_curr.ce-rs_curr_filt)*7/6;
+      const double rs_curr_np = sigpower(rs_curr.ce-rs_curr_filt)*7/6;
       //const double rs_curr_np=sigpower(rs_curr.ce-rs_curr_filt)*(1.0/(pow(2.0/7.0,2.0)*2.0+pow(3.0/7.0,2.0)*2.0/3.0));
       // Note that this value can be negative!
       //const double rs_curr_sp=MAX(sigpower(rs_curr_filt)-rs_curr_np/7,0);
-      const double rs_curr_tp=sigpower(rs_curr_filt);
-      const double rs_curr_sp_raw=rs_curr_tp-rs_curr_np/7;
-      const double rs_curr_sp=MAX(.00001,rs_curr_sp_raw);
+      const double rs_curr_tp = sigpower(rs_curr_filt);
+      const double rs_curr_sp_raw = rs_curr_tp-rs_curr_np/7;
+      const double rs_curr_sp = MAX(.00001, rs_curr_sp_raw);
       //cout << "SP RSC " << db10(sigpower(rs_curr.ce)) << endl;
       //cout << "SP/NP " << db10(rs_curr_sp) << " / " << db10(rs_curr_np) << endl;
       // Store filtered channel estimates.
       ce_filt_fifo_pdu_t pdu;
-      pdu.shift=rs_curr.shift;
-      pdu.slot_num=rs_curr.slot_num;
-      pdu.sym_num=rs_curr.sym_num;
-      pdu.tp=rs_curr_tp;
-      pdu.sp=rs_curr_sp;
-      pdu.sp_raw=rs_curr_sp_raw;
-      pdu.np=rs_curr_np;
-      pdu.ce_filt=rs_curr_filt;
+      pdu.shift = rs_curr.shift;
+      pdu.slot_num = rs_curr.slot_num;
+      pdu.sym_num = rs_curr.sym_num;
+      pdu.tp = rs_curr_tp;
+      pdu.sp = rs_curr_sp;
+      pdu.sp_raw = rs_curr_sp_raw;
+      pdu.np = rs_curr_np;
+      pdu.ce_filt = rs_curr_filt;
       ce_filt_fifo[port_num].push_back(pdu);
 
       // FOE
-      do_foe(global_thread_data,rs_prev,rs_next,rs_curr_np,rs_curr_filt);
+      do_foe(global_thread_data, rs_prev, rs_next, rs_curr_np, rs_curr_filt);
 
       // TOE
       //do_toe(tracked_cell,rs_curr,rs_curr_filt,rs_curr_np);
-      do_toe_v2(tracked_cell,rs_prev,rs_curr,rs_curr_sp,rs_curr_np);
+      do_toe_v2(tracked_cell, rs_prev, rs_curr, rs_curr_sp, rs_curr_np);
 
       // Estimate frequency domain autocorrelations.
-      do_ac_fd(tracked_cell,rs_curr,rs_curr_sp,rs_curr_np);
+      do_ac_fd(tracked_cell, rs_curr, rs_curr_sp, rs_curr_np);
 
       // Estimate the time domain autocorrelation function.
-      do_ac_td(tracked_cell,rs_curr,rs_curr_sp,ce_history[port_num]);
+      do_ac_td(tracked_cell, rs_curr, rs_curr_sp, ce_history[port_num]);
 
       // Finished working with the raw channel estimates.
       ce_raw_fifo[port_num].pop_front();
@@ -963,7 +970,7 @@ void tracker_thread(
 
     // Tasks that need access to the filtered channel estimates should
     // go in this loop.
-    for (uint8 port_num=0;port_num<tracked_cell.n_ports;port_num++) {
+    for (uint8 port_num = 0; port_num < tracked_cell.n_ports; port_num++) {
       // For interpolation, we need two OFDM symbols.
       if (ce_filt_fifo[port_num].size()!=2)
         continue;
@@ -1066,4 +1073,3 @@ void tracker_thread(
     slot_sym_inc(tracked_cell.n_symb_dl(),slot_num,sym_num);
   }
 }
-

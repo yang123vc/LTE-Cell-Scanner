@@ -1099,7 +1099,7 @@ void ce_interp_freq_time(
   cmat & ce_tfg
 ) {
   // Interpolate in the frequency domain
-  cmat ce_filt_frq(n_rs_ofdm,72);
+  cmat ce_filt_frq(n_rs_ofdm, 72);
 #ifndef NDEBUG
   ce_filt_frq=NAN;
 #endif
@@ -1378,8 +1378,8 @@ void chan_est(
   cmat & ce_tfg,
   double & np
 ) {
-  const int8 n_symb_dl=cell.n_symb_dl();
-  const uint16 n_ofdm=tfg.rows();
+  const int8 n_symb_dl = cell.n_symb_dl();
+  const uint16 n_ofdm = tfg.rows();
 
   // Set of OFDM symbols containing reference symbols.
   ivec rs_set;
