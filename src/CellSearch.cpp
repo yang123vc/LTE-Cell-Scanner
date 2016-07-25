@@ -347,10 +347,10 @@ void config_usb(
   rtlsdr_dev_t *& dev,
   double & fs_programmed
 ) {
-  int32 device_index=device_index_cmdline;
+  int32 device_index = device_index_cmdline;
 
-  int8 n_rtlsdr=rtlsdr_get_device_count();
-  if (n_rtlsdr==0) {
+  int8 n_rtlsdr = rtlsdr_get_device_count();
+  if (n_rtlsdr == 0) {
     cerr << "Error: no RTL-SDR USB devices found..." << endl;
     ABORT(-1);
   }
@@ -359,12 +359,12 @@ void config_usb(
   if ((n_rtlsdr==1)&&(device_index==-1)) {
     device_index=0;
   }
-  if ((device_index<0)||(device_index>=n_rtlsdr)) {
+  if ((device_index < 0) || (device_index >= n_rtlsdr)) {
     cerr << "Error: must specify which USB device to use with --device-index" << endl;
     cerr << "Found the following USB devices:" << endl;
     char vendor[256],product[256],serial[256];
-    for (uint8 t=0;t<n_rtlsdr;t++) {
-      rtlsdr_get_device_usb_strings(t,vendor,product,serial);
+    for (uint8 t = 0; t < n_rtlsdr; t++) {
+      rtlsdr_get_device_usb_strings(t, vendor, product, serial);
       cerr << "Device index " << t << ": [Vendor: " << vendor << "] [Product: " << product << "] [Serial#: " << serial << "]" << endl;
     }
     ABORT(-1);
@@ -386,10 +386,10 @@ void config_usb(
   fs_programmed=(double)rtlsdr_get_sample_rate(dev);
 
   // Center frequency
-  uint8 n_fail=0;
-  while (rtlsdr_set_center_freq(dev,itpp::round(fc*correction))<0) {
+  uint8 n_fail = 0;
+  while (rtlsdr_set_center_freq(dev, itpp::round(fc*correction))<0) {
     n_fail++;
-    if (n_fail>=5) {
+    if (n_fail >= 5) {
       cerr << "Error: unable to set center frequency" << endl;
       ABORT(-1);
     }
@@ -410,34 +410,33 @@ void config_usb(
   }
 
   // Discard about 1.5s worth of data to give the AGC time to converge
-  if (verbosity>=2) {
+  if (verbosity >= 2) {
     cout << "Waiting for AGC to converge..." << endl;
   }
   uint32 n_read=0;
   int n_read_current;
+
 #define BLOCK_SIZE 16*16384
-  uint8 * buffer=(uint8 *)malloc(BLOCK_SIZE*sizeof(uint8));
+
+  uint8 * buffer = (uint8 *) malloc(BLOCK_SIZE*sizeof(uint8));
   while (true) {
     if (rtlsdr_read_sync(dev,buffer,BLOCK_SIZE,&n_read_current)<0) {
       cerr << "Error: synchronous read failed" << endl;
       ABORT(-1);
     }
-    if (n_read_current<BLOCK_SIZE) {
+    if (n_read_current < BLOCK_SIZE) {
       cerr << "Error: short read; samples lost" << endl;
       ABORT(-1);
     }
-    n_read+=n_read_current;
-    if (n_read>2880000*2)
+    n_read += n_read_current;
+    if (n_read > 2880000*2)
       break;
   }
   free(buffer);
 }
 
 // Main cell search routine.
-int main(
-  const int argc,
-  char * const argv[]
-) {
+int main(const int argc, char * const argv[]) {
   // Command line parameters are stored here.
   double freq_start;
   double freq_end;
@@ -454,31 +453,36 @@ int main(
   // Open the USB device (if necessary).
   rtlsdr_dev_t * dev=NULL;
   double fs_programmed;
-  if (!use_recorded_data)
+  if (!use_recorded_data){
     config_usb(correction,device_index,freq_start,dev,fs_programmed);
+  }
 
   // Generate a list of center frequencies that should be searched and also
-  // a list of frequency offsets that should be searched for each center
-  // frequency.
-  const uint16 n_extra=floor_i((freq_start*ppm/1e6+2.5e3)/5e3);
-  const vec f_search_set=to_vec(itpp_ext::matlab_range(-n_extra*5000,5000,n_extra*5000));
-  const vec fc_search_set=itpp_ext::matlab_range(freq_start,100e3,freq_end);
-  const uint16 n_fc=length(fc_search_set);
-  // Each center frequency is searched independently. Results are stored in
-  // this vector.
-  vector < list<Cell> > detected_cells(n_fc);
-  // Loop for each center frequency.
-  for (uint16 fci=0;fci<n_fc;fci++) {
-    double fc_requested=fc_search_set(fci);
+  // a list of frequency offsets that should be searched for each center frequency.
+  const uint16 n_extra = floor_i((freq_start*ppm/1e6+2.5e3)/5e3);
+  const vec f_search_set = to_vec(itpp_ext::matlab_range(-n_extra*5000,5000,n_extra*5000));
+  const vec fc_search_set = itpp_ext::matlab_range(freq_start,100e3,freq_end);
+  const uint16 n_fc = length(fc_search_set);
 
-    if (verbosity>=1) {
+  // Each center frequency is searched independently. Results are stored in this vector.
+  vector < list<Cell> > detected_cells(n_fc);
+
+  ////////////////////////////////////////////
+  ////////////////////////////////////////////
+  // Loop for each center frequency.
+  // TODO FIXME: should I split this off into a function?
+    // would need to pass: verbosity, n_fc, correction, save_cap, use_recorded_data, data_dir, dev
+  for (uint16 fci = 0; fci < n_fc; fci++) {
+    double fc_requested = fc_search_set(fci);
+
+    if (verbosity >= 1) {
       cout << "Examining center frequency " << fc_requested/1e6 << " MHz ..." << endl;
     }
 
     // Fill capture buffer
     cvec capbuf;
     double fc_programmed;
-    capture_data(fc_requested,correction,save_cap,use_recorded_data,data_dir,dev,capbuf,fc_programmed);
+    capture_data(fc_requested, correction, save_cap, use_recorded_data, data_dir, dev, capbuf, fc_programmed);
 
     // Correlate
 #define DS_COMB_ARM 2
@@ -491,19 +495,23 @@ int main(
     vec sp;
     uint16 n_comb_xc;
     uint16 n_comb_sp;
-    if (verbosity>=2) {
+    if (verbosity >= 2) {
       cout << "  Calculating PSS correlations" << endl;
     }
-    xcorr_pss(capbuf,f_search_set,DS_COMB_ARM,fc_requested,fc_programmed,fs_programmed,xc_incoherent_collapsed_pow,xc_incoherent_collapsed_frq,xc_incoherent_single,xc_incoherent,sp_incoherent,xc,sp,n_comb_xc,n_comb_sp);
+
+    // FIXME: ~15 arguments....
+      // maybe inline xcorr_pss for speed?
+    xcorr_pss(capbuf, f_search_set, DS_COMB_ARM, fc_requested, fc_programmed, fs_programmed, xc_incoherent_collapsed_pow, xc_incoherent_collapsed_frq, xc_incoherent_single, xc_incoherent, sp_incoherent, xc, sp, n_comb_xc, n_comb_sp);
 
     // Calculate the threshold vector
-    const uint8 thresh1_n_nines=12;
-    double R_th1=chi2cdf_inv(1-pow(10.0,-thresh1_n_nines),2*n_comb_xc*(2*DS_COMB_ARM+1));
-    double rx_cutoff=(6*12*15e3/2+4*15e3)/(FS_LTE/16/2);
-    vec Z_th1=R_th1*sp_incoherent/rx_cutoff/137/2/n_comb_xc/(2*DS_COMB_ARM+1);
+    const uint8 thresh1_n_nines = 12;
+    double R_th1 = chi2cdf_inv(1-pow(10.0,-thresh1_n_nines),2*n_comb_xc*(2*DS_COMB_ARM+1));
+    double rx_cutoff = (6*12*15e3/2+4*15e3)/(FS_LTE/16/2);
+    vec Z_th1 = R_th1*sp_incoherent/rx_cutoff/137/2/n_comb_xc/(2*DS_COMB_ARM+1);
 
     // Search for the peaks
-    if (verbosity>=2) {
+      // FIXME: what does this mean?
+    if (verbosity >= 2) {
       cout << "  Searching for and examining correlation peaks..." << endl;
     }
     list <Cell> peak_search_cells;
@@ -566,7 +574,8 @@ int main(
 
       ++iterator;
     }
-  }
+  } // end of giant for loop
+  ////////////////////////////////////////////
 
   // Generate final list of detected cells.
   list <Cell> cells_final;
@@ -616,4 +625,3 @@ int main(
   // Successful exit.
   return 0;
 }
-

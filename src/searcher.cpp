@@ -382,10 +382,9 @@ void xc_peak_freq(
   }
 }
 
-// Correlate the received signal against all possible PSS and all possible
-// frequency offsets.
-// This is the main function that calls all of the previously declared
-// subfunctions.
+// Correlate the received signal against all possible PSS and all possible frequency offsets.
+// This is the main function that calls all of the previously declared subfunctions.
+  // xcorr == cross-correlate
 void xcorr_pss(
   // Inputs
   const cvec & capbuf,
@@ -1386,7 +1385,7 @@ void chan_est(
   if (port <= 1) {
     // There are better ways to implement this...
     Sort <int> sort;
-    rs_set=concat(itpp_ext::matlab_range(0,n_symb_dl,n_ofdm-1),itpp_ext::matlab_range(n_symb_dl-3,n_symb_dl,n_ofdm-1));
+    rs_set = concat(itpp_ext::matlab_range(0,n_symb_dl,n_ofdm-1),itpp_ext::matlab_range(n_symb_dl-3,n_symb_dl,n_ofdm-1));
     sort.sort(0,rs_set.length()-1,rs_set);
     //rs_set=reverse(rs_set);
   } else {
@@ -1396,7 +1395,7 @@ void chan_est(
 
   // Extract the raw channel estimates. 12 raw channel estimates per OFDM
   // symbol containing RS.
-  cmat ce_raw(n_rs_ofdm,12);
+  cmat ce_raw(n_rs_ofdm, 12);
 #ifndef NDEBUG
   ce_raw=NAN;
 #endif
@@ -1470,18 +1469,17 @@ void chan_est(
   }
 
   // Estimate noise power
-  np=sigpower(cvectorize(ce_filt)-cvectorize(ce_raw));
+  np = sigpower(cvectorize(ce_filt)-cvectorize(ce_raw));
 
   // There is no appreciable difference in performance between these
   // algorithms for high SNR values.
   //ce_interp_2stage(ce_filt,shift,n_ofdm,n_rs_ofdm,rs_set,ce_tfg);
   //ce_interp_freq_time(ce_filt,shift,n_ofdm,n_rs_ofdm,rs_set,ce_tfg);
-  ce_interp_hex(ce_filt,shift,n_ofdm,n_rs_ofdm,rs_set,ce_tfg);
+  ce_interp_hex(ce_filt, shift, n_ofdm, n_rs_ofdm, rs_set, ce_tfg);
 }
 
 // Examine the time/ frequency grid and extract the RE that belong to the PBCH.
-// Also return the channel estimates for that RE from all 4 possible eNodeB
-// ports.
+// Also return the channel estimates for that RE from all 4 possible eNodeB ports.
 void pbch_extract(
   // Inputs
   const Cell & cell,
@@ -1492,13 +1490,13 @@ void pbch_extract(
   cmat & pbch_ce
 ) {
   // Shortcuts
-  const int8 n_symb_dl=cell.n_symb_dl();
-  const uint16 m_bit=(cell.cp_type==cp_type_t::NORMAL)?1920:1728;
-  const uint8 v_shift_m3=mod(cell.n_id_cell(),3);
+  const int8 n_symb_dl = cell.n_symb_dl();
+  const uint16 m_bit = (cell.cp_type==cp_type_t::NORMAL)?1920:1728;
+  const uint8 v_shift_m3 = mod(cell.n_id_cell(),3);
 
-  pbch_sym=cvec(m_bit/2);
+  pbch_sym = cvec(m_bit/2);
   // One channel estimate from each of 4 ports for each RE.
-  pbch_ce=cmat(4,m_bit/2);
+  pbch_ce = cmat(4,m_bit/2);
 #ifndef NDEBUG
   pbch_sym=NAN;
   pbch_ce=NAN;

@@ -160,21 +160,20 @@ void producer_thread(
       }
     }
 
-    // Loop for each tracked cell and save data, if necessary. Also delete
-    // threads that may have lost lock.
+    // Loop for each tracked cell and save data, if necessary. Also delete threads that may have lost lock.
     {
       boost::mutex::scoped_lock lock(tracked_cell_list.mutex);
-      list <tracked_cell_t *>::iterator it=tracked_cell_list.tracked_cells.begin();
-      while (it!=tracked_cell_list.tracked_cells.end()) {
+      list <tracked_cell_t *>::iterator it = tracked_cell_list.tracked_cells.begin();
+      while (it != tracked_cell_list.tracked_cells.end()) {
         tracked_cell_t & tracked_cell=(*(*it));
         // See if this thread has been launched yet. If not, launch it.
         if (!tracked_cell.launched) {
-          tracked_cell.thread=boost::thread(tracker_thread,boost::ref(tracked_cell),boost::ref(global_thread_data));
-          tracked_cell.launched=true;
+          tracked_cell.thread = boost::thread(tracker_thread, boost::ref(tracked_cell), boost::ref(global_thread_data));
+          tracked_cell.launched = true;
         }
-        double frame_timing=tracked_cell.frame_timing();
+        double frame_timing = tracked_cell.frame_timing();
 
-        cell_local_t & cl=cell_local[tracked_cell.n_id_cell];
+        cell_local_t & cl = cell_local[tracked_cell.n_id_cell];
 
         // Initialize local storage if necessary
         if (tracked_cell.serial_num!=cl.serial_num) {
@@ -250,4 +249,3 @@ void producer_thread(
     }
   }
 }
-

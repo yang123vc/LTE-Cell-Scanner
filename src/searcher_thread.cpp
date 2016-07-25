@@ -203,7 +203,7 @@ void searcher_thread(
       //sleep(100000);
       if ((*iterator).n_rb_dl == -1) {
         // No MIB could be successfully decoded.
-        iterator=detected_cells.erase(iterator);
+        iterator = detected_cells.erase(iterator);
         continue;
       }
 
