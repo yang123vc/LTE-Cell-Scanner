@@ -12,6 +12,7 @@
 FIND_PATH(BLADERF_INCLUDE_DIR libbladeRF.h
   ${LIBBLADERF_DIR}/include
   /usr/local/include/libbladeRF
+  /usr/include/
 )
 
 FIND_LIBRARY(BLADERF_LIBRARY
